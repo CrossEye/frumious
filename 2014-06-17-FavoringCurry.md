@@ -96,13 +96,56 @@ Don't Care: I'm Not a Math Geek!
 
 So you do web development, huh?  You make AJAX calls to the server?  You're using [Promises][p-a+], I hope?  Do you have to manipulate the data that comes back, filter it, subset it?  Or you do server-side development?  You asynchronously query a no-SQL database, and manipulate those results?
 
-The best thing I can suggest is that you go look at Hugh FD Jackson's excellent post, [Why Curry Helps][hfdj].  It's the best reading I've seen on this.  And if you're a visual learning, spend half an hour on Dr. Boolean's video [Hey Underscore, You're Doing It Wrong][bl].  (And don't worry about the title; he doesn't spend _too much_ time actually trashing libraries in there.)
+The best thing I can suggest is that you go look at Hugh FD Jackson's excellent post, [Why Curry Helps][hfdj].  It's the best reading I've seen on this.  And if you're a visual learner, spend half an hour on Dr. Boolean's video [Hey Underscore, You're Doing It Wrong][bl].  (And don't worry about the title; he doesn't spend _too much_ time actually trashing libraries in there.)
 
 Really go ahead.  Look at those; they can explain better than I can; you already can see that I'm verbose, windy, wordy and downright garrulous.  And if you've seen those, you can skip the rest of this section.  They've already said it better than I can.  
 
 You've been warned.
 
-Ok, here we go.  Does code like this look at all familiar?:
+----------
+
+Suppose we expect to get some data like this:
+
+    var data = {
+        result: "SUCCESS",
+        interfaceVersion: "1.0.3",
+        requested: "10/17/2013 15:31:20".
+        lastUpdated: "10/16/2013 10:52:39",
+        tasks: [
+            {id: 104, complete: false,            priority: "high",
+                      dueDate: "2013-11-29",      member: "Scott",
+                      title: "Do something",      created: "9/22/2013"},
+            {id: 105, complete: false,            priority: "medium",
+                      dueDate: "2013-11-22",      member: "Lena",
+                      title: "Do something else", created: "9/22/2013"},
+            {id: 107, complete: true,             priority: "high",
+                      dueDate: "2013-11-22",      member: "Mike",
+                      title: "Fix the foo",       created: "9/22/2013"},
+            {id: 108, complete: false,            priority: "low",
+                      dueDate: "2013-11-15",      member: "Punam",
+                      title: "Adjust the bar",    created: "9/25/2013"},
+            {id: 110, complete: false,            priority: "medium",
+                      dueDate: "2013-11-15",      member: "Scott",
+                      title: "Rename everything", created: "10/2/2013"},
+            {id: 112, complete: true,             priority: "high",
+                      dueDate: "2013-11-27",      member: "Lena",
+                      title: "Alter all quuxes",  created: "10/5/2013"}
+            // , ...
+        ]
+    };
+
+And we need a function `getIncompleteTaskSummaries` that accepts a membername parameter, then fetches the data from the server (or somewhere), chooses the tasks for that member that are not complete, returns their ids, priorities, titles, and due dates, sorted by due date. Actually, it returns a Promise that should resolve into that sort of list.
+
+If you pass "Scott" to `getIncompleteTaskSummaries`, it might return
+
+    [
+        {id: 110, title: "Rename everything", 
+            dueDate: "2013-11-15", priority: "medium"},
+        {id: 104, title: "Do something", 
+            dueDate: "2013-11-29", priority: "high"}
+    ]
+
+Ok, here we go. Does code like this look at all familiar?
 
     getIncompleteTaskSummaries = function(membername) {
         return fetchData()
@@ -148,46 +191,6 @@ Ok, here we go.  Does code like this look at all familiar?:
             });
     };
     
-It's built around some unnamed Promises implementation.  It's a function that accepts a `membername` parameter, then fetches the data from the server (or somewhere), chooses the tasks for that member that are not complete, returns their ids, priorities, titles, and due dates, sorted by due date.  Actually, it returns a Proimise that should resolve into that sort of list.
-
-Starting with something like this:
-
-    var data = {
-        result: "SUCCESS",
-        interfaceVersion: "1.0.3",
-        requested: "10/17/2013 15:31:20".
-        lastUpdated: "10/16/2013 10:52:39",
-        tasks: [
-            {id: 104, complete: false,            priority: "high",
-                      dueDate: "2013-11-29",      member: "Scott",
-                      title: "Do something",      created: "9/22/2013"},
-            {id: 105, complete: false,            priority: "medium",
-                      dueDate: "2013-11-22",      member: "Lena",
-                      title: "Do something else", created: "9/22/2013"},
-            {id: 107, complete: true,             priority: "high",
-                      dueDate: "2013-11-22",      member: "Mike",
-                      title: "Fix the foo",       created: "9/22/2013"},
-            {id: 108, complete: false,            priority: "low",
-                      dueDate: "2013-11-15",      member: "Punam",
-                      title: "Adjust the bar",    created: "9/25/2013"},
-            {id: 110, complete: false,            priority: "medium",
-                      dueDate: "2013-11-15",      member: "Scott",
-                      title: "Rename everything", created: "10/2/2013"},
-            {id: 112, complete: true,             priority: "high",
-                      dueDate: "2013-11-27",      member: "Lena",
-                      title: "Alter all quuxes",  created: "10/5/2013"}
-            // , ...
-        ]
-    };
-
-and being passed "Scott", it might return 
-
-    [
-        {id: 110, title: "Rename everything", 
-            dueDate: "2013-11-15", priority: "medium"},
-        {id: 104, title: "Do something", 
-            dueDate: "2013-11-29", priority: "high"}
-    ]
     
 Now wouldn't it be nicer if the code looked more like this?:
 
@@ -202,7 +205,7 @@ Now wouldn't it be nicer if the code looked more like this?:
 
 If so, then currying could well be for you.  All the Ramda functions mentioned in this block are curried.  (In fact, pretty well all Ramda functions of more than one parameter are curried, with only a few necessary exceptions.)  In every case the currying is part of what makes it so easy to compose them into such a nice, elegant block.
 
-Let's take a brief look.
+Let's take a look at what's happening.
 
 `get` (also known as `prop`) is defined like this:
 
@@ -242,8 +245,7 @@ Ramda's filter works much like the native filter on `Array.prototype`, but the s
     
 So we're curried yet again, passing in only the predicate, and not the list of tasks passed through from the previous step.  (I did tell you that everything was curried, did I not?)
 
-We do the same sort of thing with `propEq('complete', false) -> reject` as we did with 
-`propEq('username', membername) -> filter`.  `Reject` is the same as `filter` except that it reverses the sense of it.  It keeps only those ones for which the predicate returns `false.`
+We do the same sort of thing with `propEq('complete', false) -> reject` as we did with `propEq('username', membername) -> filter`.  `Reject` is the same as `filter` except that it reverses the sense of it.  It keeps only those ones for which the predicate returns `false.`
 
 Ok, are you still here reading?  My index fingers are getting tired.  (Really have to learn to touch-type!)  You don't really need me to explain those last two lines, right?   Really?  You're sure?  All right!  All right!  Yes! ... Yes, I said I would!
 
@@ -255,7 +257,7 @@ So next we see
 
     ramda.map = curry(function(fn, list) { /* ... */ });
 
-And the broken record here will report _yet again_ (I told you I'd be tedious) that this function is curried, since we only supply the function from the (curried!) output of `pick` to this, and not the list.  `then` will invoke this with the list of tasks.
+And the broken record here will report _yet again_ -- I told you I'd be tedious -- that this function is curried, since we only supply the function from the (curried!) output of `pick` to this, and not the list.  `then` will invoke this with the list of tasks.
 
 OK, remember sitting in school, waiting for the for the class to end?  The minute hand on the clock was stuck, and the second hand was moving through molasses?  The teacher was droning on and on about the same thing over and over.  Remember that?  And then there was that moment, maybe two minutes before the end of the period, when the end was suddenly in sight: _Hallelujah_!  I think we're there with this example.  There is only this left:
 
@@ -297,7 +299,7 @@ This example is demonstrating the Ramda utility functions alongside the currying
             });
     };
 
-That, I think, is the equivalent.  It's still better than the original code.  Ramda's utility functions have some -- err, utility -- even in the absence of currying.  But I don't think it's even close to as readable as this:
+That, I think, is the equivalent.  It's still better than the original code.  Ramda's utility functions have some -- er, utility -- even in the absence of currying.  But I don't think it's even close to as readable as this:
 
 
     var getIncompleteTaskSummaries = function(membername) {
@@ -314,14 +316,18 @@ And that is why we curry.
 
 ----------
 
-Ok, the lecture is over.  
+Here endeth the lesson.  
 
 I did warn you.  
 
-Next time, when I tell you to read someone else's stuff instead of mine, you'll pay attention, right?  It might be too late to look at these instead of reading mine, but they still are very well done, and maybe you can do it as well.
+Next time, when I tell you to read someone else's stuff instead of mine, you'll pay attention, right?  It might be too late to look at these _instead_ of reading mine, but they still are very well done, and maybe you can do it as well:
 
   * [Why Curry Helps][hfdj], Hugh FD Jackson
   * [Hey Underscore, You're Doing It Wrong][bl], Dr. Boolean, aka Brian Lonsdorf
+
+There's one other that's brand-new.  I just saw it today.  We'll see if it stands the test of time, but for now it's a good read:
+
+  * [Put callback first for elegance][gb], Gleb Bahmutov
 
   
   
@@ -332,14 +338,19 @@ Currying, as powerful as it is, is not enough to make your code elegant.
 
 There seem to be three important components.  
 
-  * [Last time][why-r] I discussed functional composition.  That is necessary for bringing together all your beautiful ideas without a lot of ugly glue code to hold them together.
-
-  * Currying is useful both because it's needed to support composition and because it removes tremendouse amounts of boilerplate as we see above.
-  
-  * A collection of functions operating on useful data structures, such as lists of objects.
+ * [Last time][why-r] I discussed **functional composition**.  That is necessary for bringing together all your beautiful ideas without a lot of ugly glue code to hold them together.
+ * **Currying** is useful both because it's needed to support composition and because it removes tremendous amounts of boilerplate as we see above.
+ * A collection of **utility functions** operating on useful data structures, such as lists of objects.
   
 One of the goals of [Ramda][r] is to provide all these in a convenient package.
 
+
+Thanks
+------
+
+A shoutout is due to [buzzdecafe][mh] who helped edit this article and the previous one, and this time gave me the perfect title.  Thanks, Mike!
+
+----------
 
   [why-r]: http://fr.umio.us/why-ramda/
   [r]: https://github.com/CrossEye/ramda
@@ -347,3 +358,5 @@ One of the goals of [Ramda][r] is to provide all these in a convenient package.
   [p-a+]: http://promises-aplus.github.io/promises-spec/
   [hfdj]: http://hughfdjackson.com/javascript/why-curry-helps/
   [bl]: http://www.youtube.com/watch?v=m3svKOdZijA
+  [gb]: http://bahmutov.calepin.co/put-callback-first-for-elegance.html
+  [mh]: http://buzzdecafe.github.io/
